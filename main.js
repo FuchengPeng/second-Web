@@ -1,5 +1,5 @@
 // 设置画布
-const canvas = document.getElementById('gameCanvas');
+const canvas = document.querySelector('canvas');
 const ctx = canvas.getContext('2d');
 
 const width = canvas.width = window.innerWidth;
@@ -11,12 +11,12 @@ function random(min, max) {
   return num;
 }
 
-// 生成随机颜色值的函数
-function randomColor() {
+// 生成森林主题颜色值的函数
+function randomForestColor() {
   const color = 'rgb(' +
-                random(0, 255) + ',' +
-                random(0, 255) + ',' +
-                random(0, 255) + ')';
+                 random(34, 139) + ',' + // 更偏向绿色的 RGB 值
+                 random(34, 139) + ',' +
+                 random(34, 139) + ')';
   return color;
 }
 
@@ -28,6 +28,7 @@ function Ball(x, y, velX, velY, color, size) {
   this.velY = velY;
   this.color = color;
   this.size = size;
+  this.history = []; // 存储球的移动轨迹
 }
 
 // 定义彩球绘制函数
@@ -36,20 +37,45 @@ Ball.prototype.draw = function() {
   ctx.fillStyle = this.color;
   ctx.arc(this.x, this.y, this.size, 0, 2 * Math.PI);
   ctx.fill();
+
+  // 绘制轨迹
+  if (this.history.length > 0) {
+    ctx.beginPath();
+    ctx.strokeStyle = this.color;
+    ctx.moveTo(this.history[0].x, this.history[0].y);
+    for (let point of this.history) {
+      ctx.lineTo(point.x, point.y);
+    }
+    ctx.stroke();
+  }
 };
 
 // 定义彩球更新函数
 Ball.prototype.update = function() {
-  if ((this.x + this.size) >= width || (this.x - this.size) <= 0) {
-    this.velX = -this.velX;
+  if ((this.x + this.size) >= width) {
+    this.velX = -(this.velX);
   }
 
-  if ((this.y + this.size) >= height || (this.y - this.size) <= 0) {
-    this.velY = -this.velY;
+  if ((this.x - this.size) <= 0) {
+    this.velX = -(this.velX);
+  }
+
+  if ((this.y + this.size) >= height) {
+    this.velY = -(this.velY);
+  }
+
+  if ((this.y - this.size) <= 0) {
+    this.velY = -(this.velY);
   }
 
   this.x += this.velX;
   this.y += this.velY;
+
+  // 更新轨迹
+  this.history.push({x: this.x, y: this.y});
+  if (this.history.length > 50) { // 限制轨迹点数量，防止性能问题
+    this.history.shift();
+  }
 };
 
 // 定义碰撞检测函数
@@ -61,7 +87,7 @@ Ball.prototype.collisionDetect = function() {
       const distance = Math.sqrt(dx * dx + dy * dy);
 
       if (distance < this.size + balls[j].size) {
-        this.color = balls[j].color = randomColor();
+        this.color = balls[j].color = randomForestColor();
       }
     }
   }
@@ -77,20 +103,15 @@ while (balls.length < 25) {
     random(0 + size, height - size),
     random(-7, 7),
     random(-7, 7),
-    randomColor(),
+    randomForestColor(),
     size
   );
   balls.push(ball);
 }
 
-// 添加鼠标交互
-canvas.addEventListener('mousemove', function(e) {
-  balls.push(new Ball(e.clientX, e.clientY, random(-7, 7), random(-7, 7), randomColor(), random(10, 20)));
-});
-
 // 定义一个循环来不停地播放
 function loop() {
-  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.fillStyle = 'rgba(0,0,0,0.1)'; // 半透明背景
   ctx.fillRect(0, 0, width, height);
 
   for (let i = 0; i < balls.length; i++) {
